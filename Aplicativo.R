@@ -1,11 +1,10 @@
-
+# Carregando os pacotes
 library(tidyverse)
 library(tidymodels)
 library(glmnet)
 library(shinyBS) # tooltip
 library(shinydashboard) # valueBox
 library(shinyWidgets) # useshinydashboard()
-
 
 
 # Carregar o modelo
@@ -20,7 +19,6 @@ pitch_plot <-  SBpitch::create_Pitch(grass_colour = "#065400",
 
 
 # Funções
-#
 
 # Função pra calcular a distancio do passe dada a coordenada
 passLength <- function(pass.x, pass.y, shot.x, shot.y) {
@@ -30,7 +28,6 @@ passLength <- function(pass.x, pass.y, shot.x, shot.y) {
   
   return(Hip)
 }
-
 
 # Função pra calcular o ângulo entre o local do passe, local do chute e o centro do gol
 three.points.angle <- function(shot.x, shot.y, pass.x, pass.y) {
@@ -45,13 +42,10 @@ three.points.angle <- function(shot.x, shot.y, pass.x, pass.y) {
   dist2 = sqrt((shot.x - GCenter.X)^2 + (shot.y - GCenter.Y)^2) 
   dist3 = sqrt((pass.x - GCenter.X)^2 + (pass.y - GCenter.Y)^2) 
   
-  
   ang = acos((dist1^2 + dist2^2 - dist3^2)/(2*dist1*dist2))
   
   return(ang)
 }
-
-
 
 # Função pra calcular a distancio do chute para o centro do gol dada a coordenada
 LengthToGoal <- function(x,y) {
@@ -78,18 +72,9 @@ AngToGoal <- function(x,y) {
   # Se quiser o ângulo em graus multiplica o resultado por 180/pi
 }
 
-
-
-
-
-#Calcular a pressão no finalizador. Considera o total de jogadores num raio
+# Calcular a pressão no finalizador. Considera o total de jogadores num raio
 # de 10 metros e suas distâncias.
 qtd_def_10m <- function(shot.x, shot.y, def.x, def.y) { 
-  
-  
-  
-  
-  
   
   valores <- purrr::map2(def.x, def.y, function(def.x, def.y){
     
@@ -97,53 +82,36 @@ qtd_def_10m <- function(shot.x, shot.y, def.x, def.y) {
     CatOp <- abs(shot.y - def.y)   
     Hip <- sqrt(CatAdj^2 + CatOp^2)
     
-    
-    
     return(Hip)
-    
-    
     
   }
   )
   
-  
-  
   limit = 10
   
-  
-  
-  # Retira as distancias que são 10m ou maiores e soma o inverso das outras distancias
+  # Retira as distâncias que são 10m ou maiores e soma o inverso das outras distâncias
   # quanto menor a distância e quanto mais jogadores, maior o "pressure".
   # O "1" no denominador é pra garantir que não dê infinito.
   # A pressão que cada jogador exerce varia entre 0 e 1.
   pressure <- purrr::map(valores, function(x) {if_else(x<limit, 1/(1+x), 0)}) %>%  unlist %>%  sum
   
-  
   return(pressure)
 }
-
-
-
 
 # Calcula o total de defensores no ângulo de finalização
 qtd_def_in_way <- function(shot.x, shot.y, def.x, def.y) { 
   
-  
-  
-  
   valores <- purrr::map2(def.x, def.y, function(def.x, def.y){
     
-    
     post1.x = 120
-    post1.y = 44 + 1 # adicionando um pouco por causa da curva da bola e por causa do tempo que os defensores têm pra se mover durante a trajetória do chute
+    post1.y = 44 + 1 # Adicionando um pouco por causa da curva da bola e por causa do tempo que os defensores têm pra se mover durante a trajetória do chute
     post2.x = 120
-    post2.y = 36 - 1 # adicionando um pouco por causa da curva da bola e por causa do tempo que o goleiro tem pra se mover durante a trajetoria do chute
+    post2.y = 36 - 1 # Adicionando um pouco por causa da curva da bola e por causa do tempo que o goleiro tem pra se mover durante a trajetoria do chute
     
-    
-    #testar se está abaixo da linha formada pelo ponto do chute e trave de cima
+    # Testar se está abaixo da linha formada pelo ponto do chute e trave de cima
     test1 = ((shot.x - def.x)*(post1.y - def.y) - (shot.y - def.y)*(post1.x - def.x) < 0)
     
-    #testar se está a cima da linha formada pelo ponto do chute e trave de baixo
+    # Testar se está a cima da linha formada pelo ponto do chute e trave de baixo
     test2 = ((shot.x - def.x)*(post2.y - def.y) - (shot.y - def.y)*(post2.x - def.x) > 0)
     
     return(test1 == TRUE & test2 == TRUE);
@@ -152,107 +120,62 @@ qtd_def_in_way <- function(shot.x, shot.y, def.x, def.y) {
   
   valores <-  valores %>%  unlist
   
-  return(sum(valores)) #soma de um vetor lógico retorna a quantidade de TRUE's
+  return(sum(valores)) # Soma de um vetor lógico retorna a quantidade de TRUE's
 }
 
-
-
-
-
-
-
-
-
-
-#Função pra calcular a variancia entre os ângulos e com isso ver
+# Função pra calcular a variância entre os ângulos e com isso ver
 # a possibilidade da bola ser bloqueada pelos defensores.
 ang_blocks <- function(shot.x, shot.y, def.x, def.y) { 
   
-  
   valores <- purrr::map2_dbl(def.x, def.y, function(def.x, def.y){
-    
-    
-    
     
     post1.x = 120
     post1.y = 44 + 1 
     post2.x = 120
     post2.y = 36 - 1 
     
-    
-    #testar se está abaixo da linha formada pelo ponto do chute e trave de cima
+    # Testar se está abaixo da linha formada pelo ponto do chute e trave de cima
     test1 = ((shot.x - def.x)*(post1.y - def.y) - (shot.y - def.y)*(post1.x - def.x) < 0)
     
-    #testar se está a cima da linha formada pelo ponto do chute e trave de baixo
+    # Testar se está a cima da linha formada pelo ponto do chute e trave de baixo
     test2 = ((shot.x - def.x)*(post2.y - def.y) - (shot.y - def.y)*(post2.x - def.x) > 0)
-    
-    
     
     ang <-  NA
     
-    
-    
-    
-    
     if (test1 == TRUE & test2 == TRUE) {
-      
-      
-      
-      
-      
-      
+     
       dist1 = sqrt((shot.x - def.x)^2 + (shot.y - def.y)^2) 
       dist2 = sqrt((shot.x - post1.x)^2 + (shot.y - post1.y)^2) 
       dist3 = sqrt((def.x - post1.x)^2 + (def.y - post1.y)^2) 
       
-      
       ang <-   acos((dist1^2 + dist2^2 - dist3^2)/(2*dist1*dist2)) 
     }
-    
-    
-    
     
     return(ang)
   }
   )
 
-  
   angs <- var(valores, na.rm = TRUE)
   
-  
-  #se for NA retorna 0
+  # Se for NA retorna 0
   return(ifelse(test = is.na(angs), yes = 0, no = angs)) #soma de um vetor lógico retorna a quantidade de TRUE's
 }
 
-
-
-
-
-
-
-
-
+# Carregando o shiny
 library(shiny)
-
-
 
 
 # Códigos da interface
 ui <- fluidPage( 
   tabsetPanel(type = "pills",
               
-              
               # Aba "Probabilidade"
               tabPanel("Probabilidade", icon = icon("dice-two"),
-                       
-                       
-                       
-                       
+                    
                        sidebarLayout(
                          
                          sidebarPanel(width = 3, 
                                       style = "
-                            
                             background-color: WhiteSmoke;
                             height: 705px;
                             border-color: grey;
@@ -268,7 +191,6 @@ ui <- fluidPage(
                                       
                                       shinyBS::bsTooltip("zoom_x", "Ajusta a parte do campo exibida na imagem", placement = "bottom"),
                                       
-                                      
                                       # Posição do goleiro
                                       radioButtons(inputId = "gk_in_goal", 
                                                    label = "Posição do goleiro",
@@ -279,12 +201,8 @@ ui <- fluidPage(
                                       # Descrição: posição do goleiro
                                       shinyBS::bsTooltip("gk_in_goal", "Avalia se está dentro ou fora da parte clara do campo (formada a partir do ângulo do chute).", placement = "bottom"),
                                       
-                                      
                                       # Passe - Velocidade
                                       uiOutput(outputId = "tip"),
-                                      
-                                      
-                                      
                                       
                                       # Altura do passe
                                       radioButtons(inputId = "pass_height", 
@@ -298,8 +216,6 @@ ui <- fluidPage(
                                       shinyBS::bsTooltip("pass_height",
                                                          "  <b>Rasteiro:</b> rente ao gramado <br><br>    <b>Médio:</b> no ponto mais alto da trajetória, a bola sobe à uma altura mais baixa que a do ombro <br><br>   <b>Aéreo:</b> no ponto mais alto da trajetória, a bola sobe à uma altura mais alta que a do ombro",
                                                          placement = "bottom")
-                                      
-                                      
                                       
                          ),
                          
@@ -331,7 +247,6 @@ ui <- fluidPage(
                               ")      
                              ),
                              
-                             
                              # ValueBox: probabilidade de gol
                              column(7, uiOutput(outputId = "prob"))
                              
@@ -340,15 +255,10 @@ ui <- fluidPage(
                            # Gráfico do campo na vertical
                            plotOutput(outputId = "halfpitch")
                            
-                           
-                                      
                          )
-                         
                          
                        )
               ),
-              
-              
               
               # Aba "Posições"
               tabPanel("Posições", icon = icon("search-location"),
@@ -361,45 +271,30 @@ ui <- fluidPage(
                                   # Gráfico do campo na horizontal
                                   plotOutput("pitch0", height = "485px"),
                                   
-                                  
-                                  
                                   # Ícone dos jogadores
                                   sliderInput(inputId = "player_size",
                                               label = "Ícones dos jogadores",
                                               value = 8, min = 2, max = 16)
                                   
-                                  
-                                  
                          ),
-                         
                          
                          # Item "Finalizador"
                          tabPanel("Finalizador",  icon = icon("crosshairs"), 
                                   
-                                  
                                   # Gráfico do campo na horizontal
                                   plotOutput("pitch1", click = "click_1", height = "485px")
-                                  
-                                  
-                                  
-                                  
                                   
                          ),
                          
                          # Item "Origem do passe"
                          tabPanel("Origem do passe",  icon = icon("people-arrows"),
                                   
-                                  
-                                  
                                   # Gráfico do campo na horizontal
                                   plotOutput("pitch2", click = "click_2", height = "485px")
                          ),
                          
-                         
-                         
                          # Item "Defensor 0"
                          tabPanel("Defensor 0", icon = icon("user-shield"),
-                                  
                                   
                                   # Gráfico do campo na horizontal
                                   plotOutput("pitch3", click = "click_3", height = "485px"),
@@ -418,7 +313,6 @@ ui <- fluidPage(
                          # Item "Defensor 1"
                          tabPanel("Defensor 1", icon = icon("user-shield"),
                                   
-                                  
                                   # Gráfico do campo na horizontal
                                   plotOutput("pitch4", click = "click_4", height = "485px"),
                                   
@@ -430,7 +324,6 @@ ui <- fluidPage(
                                               width: 150px;
                                               font-weight: bolder;
                                               border-width: 3px")
-                                  #)
                                   
                          ),
                          
@@ -575,10 +468,6 @@ ui <- fluidPage(
               ),
               
               
-              
-              
-              
-              
               # Aba "Exemplos"
               tabPanel("Exemplos", icon = icon("lightbulb"),
                        
@@ -586,8 +475,6 @@ ui <- fluidPage(
                          
                          # Item "Situação 1"
                          tabPanel("Situação 1", icon = icon("bookmark"),
-                                  
-                                  
                                   
                                   fluidRow(
                                     
@@ -604,8 +491,6 @@ ui <- fluidPage(
                                     
                                   ),
                                   
-                                  
-                                  
                                   tags$hr(),
                                   
                                   # GIF
@@ -619,7 +504,6 @@ ui <- fluidPage(
                                   tags$br(),
                                   tags$br(),
                                   tags$hr(),
-                                  
                                   
                                   # Fonte 1
                                   tags$h6("Imagens retiradas do canal da",
@@ -660,12 +544,10 @@ ui <- fluidPage(
                                     )
                                   ),
                                   
-                                  
                                   tags$br(),
                                   tags$br(),
                                   tags$br(),
                                   tags$hr(),
-                                  
                                   
                                   # Fonte 1
                                   tags$h6("Imagens retiradas do canal da",
@@ -680,11 +562,6 @@ ui <- fluidPage(
                                                  "gifs.com",
                                                  target = "_blank")),
                                    
-                                  
-                                  
-                                  
-                                  
-                                  
                          ),
                          
                          # Item "Situação 3"
@@ -714,7 +591,6 @@ ui <- fluidPage(
                                     )
                                   ),
                                   
-                                  
                                   tags$br(),
                                   tags$br(),
                                   tags$br(),
@@ -733,13 +609,10 @@ ui <- fluidPage(
                                                  "gifs.com",
                                                  target = "_blank")),
                                   
-                                  
-                                  
                          ),
                          
                          # Item "Situação 4"
                          tabPanel("Situação 4", icon = icon("bookmark"),
-                                  
                                   
                                   fluidRow(
                                     
@@ -765,7 +638,6 @@ ui <- fluidPage(
                                     )
                                   ),
                                   
-                                  
                                   tags$br(),
                                   tags$br(),
                                   tags$br(),
@@ -784,12 +656,10 @@ ui <- fluidPage(
                                                  "gifs.com",
                                                  target = "_blank")),
                                   
-                                  
                          ),
                          
                          # Item "Situação 5"
                          tabPanel("Situação 5", icon = icon("bookmark"),
-                                  
                                   
                                   fluidRow(
                                     
@@ -815,7 +685,6 @@ ui <- fluidPage(
                                     )
                                   ),
                                   
-                                  
                                   tags$br(),
                                   tags$br(),
                                   tags$br(),
@@ -834,13 +703,10 @@ ui <- fluidPage(
                                                  "gifs.com",
                                                  target = "_blank")),
                                   
-                                  
-                                  
                          ),
                          
                          # Item "Situação 6"
                          tabPanel("Situação 6", icon = icon("bookmark"),
-                                  
                                   
                                   fluidRow(
                                     
@@ -866,7 +732,6 @@ ui <- fluidPage(
                                     )
                                   ),
                                   
-                                  
                                   tags$br(),
                                   tags$br(),
                                   tags$br(),
@@ -884,13 +749,11 @@ ui <- fluidPage(
                                           tags$a(href = "https://www.gifs.com",
                                                  "gifs.com",
                                                  target = "_blank")),
-                                                   
-                                  
+                                               
                          ),
                          
                          # Item "Situação 7"
                          tabPanel("Situação 7", icon = icon("bookmark"),
-                                  
                                   
                                   fluidRow(
                                     
@@ -916,7 +779,6 @@ ui <- fluidPage(
                                     )
                                   ),
                                   
-                                  
                                   tags$br(),
                                   tags$br(),
                                   tags$br(),
@@ -929,19 +791,13 @@ ui <- fluidPage(
                                                  target = "_blank"),
                                           "no youtube"),
                                   
-                                  
                                   # Fonte 2
                                   tags$h6("Gifs criados no site",
                                           tags$a(href = "https://www.gifs.com",
                                                  "gifs.com",
                                                  target = "_blank")),
                                           
-                                  
-                                  
-                                  
-                                  
                          ),
-                         
                          
                          # Item "Remover jogadores"
                          tabPanel("Remover jogadores", icon = icon("trash-alt"),
@@ -962,20 +818,15 @@ ui <- fluidPage(
                                     )
                                   )
                                   
-                                  
-                                  
                          )
-                         
                          
                        )
                        
               ),
               
-             
               
               # Aba "Instruções"
               tabPanel("Instruções", icon = icon("question-circle"),
-                       
                        
                        # Visão Geral
                        h1(strong("Visão geral")),
@@ -992,7 +843,6 @@ ui <- fluidPage(
                        br(),
                        br(),
                        
-                       
                        # Posições
                        h1(strong("Posições")),
                        hr(),
@@ -1002,7 +852,6 @@ ui <- fluidPage(
                        br(),
                        br(),
                        br(),
-                       
                        
                        # Probabilidade
                        h1(strong("Probabilidade")),
@@ -1014,7 +863,6 @@ ui <- fluidPage(
                        br(),
                        br(),
                        
-                       
                        # Exemplos
                        h1(strong("Exemplos")),
                        hr(),
@@ -1025,7 +873,6 @@ ui <- fluidPage(
                        br(),
                        br(),
                        br(),
-                       
                        
                        # Dicas
                        h1(strong("Dicas")),
@@ -1058,11 +905,7 @@ ui <- fluidPage(
                          Caso muitos dados estejam disponíveis, pode-se comparar a quantidade esperada de gols, 
                          somando as probabilidades, com a quantidade real."))
                        
-                       
-                       
               ),
-              
-              
               
                        
               # Aba "Sobre o aplicativo"
@@ -1096,7 +939,6 @@ ui <- fluidPage(
                        
                        hr(),
                        
-                       
                        h4("Foram considerados dados de 878 partidas entre 2003 e 2020 incluindo os seguintes campeonatos: Liga dos campeões,
                           Super liga feminina da Inglaterra (FA WSL), Copa do mundo, Campeonato espanhol, Campeonato de futebol feminino dos Estados Unidos,
                           Campeonato inglês e Copa do mundo de futebol feminino.", p("Todos os gols na aba", strong("Exemplos"), "
@@ -1123,12 +965,11 @@ ui <- fluidPage(
                                   h4(tags$li("Foram utilizadas 878 partidas para a criação desse aplicativo. Caso fossem utilizados mais dados, a probabilidade
                                              seria ainda mais confiável.")),
                        
-                       
               )
-              
               
   )
 )
+
 
 # Códigos do servidor
 server <- function(input, output, session) {
@@ -1142,20 +983,17 @@ server <- function(input, output, session) {
   # Valores que vão ser reconhecidos pelos cliques
   click_adv <- reactiveValues()
   
-  #outras características do passe
+  # Outras características do passe
   pass <- reactiveValues()
-  
   
   # Posição do goleiro
   gk <- reactiveValues()
   
-  
-  # valores dos pontos nos gráficos (será usado pra criar os gráficos)
+  # Valores dos pontos nos gráficos (será usado pra criar os gráficos)
   pch <- reactiveValues()
   
   # Iniciar com passador e finalizador que sempre estarão presente nos gráficos
   pch$valores <- c("P", "F")
-  
   
   # Sempre que um novo clique for dado no gráfico ou o botão recomeçar for selecionado fazer:
   observeEvent(c(click_adv$x0, click_adv$x1, click_adv$x2,
@@ -1177,8 +1015,6 @@ server <- function(input, output, session) {
                    if (length(click_adv$x8) != 0) { pch$valores <- c("8", pch$valores) }
                    if (length(click_adv$x9) != 0) { pch$valores <- c("9", pch$valores) }
                    
-
-                   
                    # Ordenar os números mas não as letras
                    # A ordem deve ser P, F , 0, 1, ..., 9
                    if (length(pch$valores) > 2) {
@@ -1187,19 +1023,13 @@ server <- function(input, output, session) {
                      
                    }
                    
-                   
-                   
-                   
-                   
                  })
-  
   
   # Cor dos pontos nos gráficos (será usado pra criar os gráficos)
   color <- reactiveValues()
   
   # Iniciar com um azul pro finalizador e um azul pro marcador que sempre estarão presentes nos gráficos
   color$valores <- c("blue", "blue")
-  
   
   # Sempre que um novo clique for dado no gráfico ou o botão recomeçar for selecionado fazer:
   observeEvent(c(click_adv$x0, click_adv$x1, click_adv$x2,
@@ -1221,14 +1051,8 @@ server <- function(input, output, session) {
                    if (length(click_adv$x8) != 0) { color$valores <- c("red", color$valores) }
                    if (length(click_adv$x9) != 0) { color$valores <- c("red", color$valores) }
                    
-                   
-                   
                  })
   
-  
-  
-  
-
   
   # Criar um texto que dependa de outro valor nesse caso a altura do passe
   text <- reactiveValues()
@@ -1263,19 +1087,15 @@ server <- function(input, output, session) {
     
   })
   
-  
-  
   # Atualizando o valor da altura do passe com o que foi imputado pelo usuário
   observeEvent(input$pass_height, {
     pass$height <- input$pass_height
     
   })
   
-  
   # Valor inicial para o local da finalização (centro do campo)
   click_fin$x <- 60.0001
   click_fin$y <- 40
-  
   
   # Atualizar o local da finalização de acordo com o clique no gráfico
   observeEvent(input$click_1, {
@@ -1354,8 +1174,6 @@ server <- function(input, output, session) {
   })
   
   
-  
-  
   # Remover defensor 0 quando seu botão for selecionado
   observeEvent(input$remove0, {
     click_adv$x0 <- NULL
@@ -1417,7 +1235,7 @@ server <- function(input, output, session) {
   })
   
   
-  # gráfico para escolher o tamanho do ícone dos jogadores
+  # Gráfico para escolher o tamanho do ícone dos jogadores
   output$pitch0 <- renderPlot({
     pitch_plot +
       
@@ -1446,7 +1264,6 @@ server <- function(input, output, session) {
                  color = color$valores,  size = input$player_size/2)
     
   })
-  
   
   # Gráfico que reconhece a coordenada do local da finalização
   output$pitch1 <- renderPlot({
@@ -1582,7 +1399,6 @@ server <- function(input, output, session) {
                  color = color$valores,  size = input$player_size/2)
   })
   
-  
   # Gráfico que reconhece a coordenada do defensor 3
   output$pitch6 <- renderPlot({
     pitch_plot +
@@ -1609,7 +1425,6 @@ server <- function(input, output, session) {
                  pch = pch$valores,
                  color = color$valores,  size = input$player_size/2)
   })
-  
   
   # Gráfico que reconhece a coordenada do defensor 4
   output$pitch7 <- renderPlot({
@@ -1638,7 +1453,6 @@ server <- function(input, output, session) {
                  color = color$valores,  size = input$player_size/2)
   })
   
-  
   # Gráfico que reconhece a coordenada do defensor 5
   output$pitch8 <- renderPlot({
     pitch_plot +
@@ -1665,7 +1479,6 @@ server <- function(input, output, session) {
                  pch = pch$valores,
                  color = color$valores,  size = input$player_size/2)
   })
-  
   
   # Gráfico que reconhece a coordenada do defensor 6
   output$pitch9 <- renderPlot({
@@ -1694,7 +1507,6 @@ server <- function(input, output, session) {
                  color = color$valores,  size = input$player_size/2)  
   })
   
-  
   # Gráfico que reconhece a coordenada do defensor 7
   output$pitch10 <- renderPlot({
     pitch_plot +
@@ -1721,7 +1533,6 @@ server <- function(input, output, session) {
                  pch = pch$valores,
                  color = color$valores,  size = input$player_size/2)  
   })
-  
   
   # Gráfico que reconhece a coordenada do defensor 8
   output$pitch11 <- renderPlot({
@@ -1750,7 +1561,6 @@ server <- function(input, output, session) {
                  color = color$valores,  size = input$player_size/2)  
   })
   
-  
   # Gráfico que reconhece a coordenada do defensor 9
   output$pitch12 <- renderPlot({
     pitch_plot +
@@ -1778,8 +1588,6 @@ server <- function(input, output, session) {
                  color = color$valores,  size = input$player_size/2) 
   })
   
-  ##########################################################################
-  
   
   # Gráfico vertical da aba "Probabilidade"
   output$halfpitch <- renderPlot({
@@ -1796,7 +1604,6 @@ server <- function(input, output, session) {
     post1_y <- 36 - 1
     post2_x <- 120
     post2_y <- 44 + 1
-    
     
     # Transparência do goleiro depende se ele está ou não no ângulo de finalização
     if (gk$position == FALSE) { alpha2 <- 0.3 }
@@ -1838,23 +1645,18 @@ server <- function(input, output, session) {
                  pch = pch$valores,
                  color = color$valores,  size = input$player_size/2) +
       
-      
-      
       # Goleiro
       geom_point(aes(x = 120.5, y = 40), color = "red", fill = "white", shape = 24, size = 8, alpha = alpha2) +
       geom_point(aes(x = 120.5, y = 40), color = "red", pch = "G", size = 4, alpha = alpha2) +
       
-      
       # espelhar os pontos
       coord_flip(xlim = c(input$zoom_x, 121.5)) + scale_y_reverse()
+    
     
     # Mostrar o gráfico
     halfpitch
     
-    
   })
-  
-  
   
   
   # Vincular a "Situação 1" ao aplicativo
@@ -1933,7 +1735,6 @@ server <- function(input, output, session) {
     updateRadioButtons(session = session, inputId = "gk_in_goal", selected = gk$position)
   })
   
-  
   # Vincular a "Situação 3" ao aplicativo
   observeEvent(input$carrasco, {
     
@@ -2008,7 +1809,6 @@ server <- function(input, output, session) {
     updateRadioButtons(session = session, inputId = "gk_in_goal", selected = gk$position)
   })
   
-  
   # Vincular a "Situação 5" ao aplicativo
   observeEvent(input$crespo, {
     
@@ -2045,7 +1845,6 @@ server <- function(input, output, session) {
     updateRadioButtons(session = session, inputId = "pass_height", selected = pass$height)
     updateRadioButtons(session = session, inputId = "gk_in_goal", selected = gk$position)
   })
-  
   
   # Vincular a "Situação 6" ao aplicativo
   observeEvent(input$maldini, {
@@ -2084,7 +1883,6 @@ server <- function(input, output, session) {
     updateRadioButtons(session = session, inputId = "gk_in_goal", selected = gk$position)
   })
   
-  
   # Vincular a "Situação 7" ao aplicativo
   observeEvent(input$rooney, {
     
@@ -2121,8 +1919,6 @@ server <- function(input, output, session) {
     updateRadioButtons(session = session, inputId = "pass_height", selected = pass$height)
     updateRadioButtons(session = session, inputId = "gk_in_goal", selected = gk$position)
   })
-  
-  
   
   # Remover todos os defensores dos gráficos e voltar o finalizador, passador e velocidade do passe pros valores padrões
   observeEvent(input$remove_all, {
@@ -2175,8 +1971,6 @@ server <- function(input, output, session) {
     clicks_adv_x <- c(click_adv$x0, click_adv$x1, click_adv$x2, click_adv$x3, click_adv$x4, click_adv$x5, click_adv$x6, click_adv$x7, click_adv$x8, click_adv$x9)
     clicks_adv_y <- c(click_adv$y0, click_adv$y1, click_adv$y2, click_adv$y3, click_adv$y4, click_adv$y5, click_adv$y6, click_adv$y7, click_adv$y8, click_adv$y9)
     
-    
-    
     # Cálculo do pressure  
     pressure <- qtd_def_10m(shot.x = click_fin$x,               
                             shot.y = click_fin$y,
@@ -2212,13 +2006,8 @@ server <- function(input, output, session) {
                                         shot.y = click_fin$y
     )
     
-    
-    
-    
     # Cálculo do shot_length
     shot_length <- LengthToGoal(x = click_fin$x, y = click_fin$y)
-    
-    
     
     # Cálculo do shot_angle
     shot_angle <- AngToGoal(x = click_fin$x, y = click_fin$y)
@@ -2233,7 +2022,7 @@ server <- function(input, output, session) {
     gk_in_goal <- gk$position  %>% as.logical()
       
     # Reunindo todas as informações disponíveis em um tibble (tipo de dataframe) nomeado
-    #  apropriadamente para o modelo reconhecer as variáveis corretamente
+    # apropriadamente para o modelo reconhecer as variáveis corretamente
     chance <- tibble(pass_length = pass_length,
                   my_pass_angle = my_pass_angle,
                   pass_height_name = pass_height_name,
@@ -2244,10 +2033,6 @@ server <- function(input, output, session) {
                   pressure = pressure,
                   def_in_way = def_in_way,
                   var_angles = var_angles)
-    
-    
-    
-    
     
     # Garatir que a probabilidade dê 0 caso o chute ou o passe sejam originados de fora do campo
     if (click_fin$x >= 0 & click_fin$x <= 120 &
@@ -2262,19 +2047,12 @@ server <- function(input, output, session) {
                                           
     }  else  { probab <- 0 }
     
-    
-    
-    
-    
-    
     # Arredondando a probabilidade pra 2 casas decimais
     probab <- round(probab, digits = 2)
     probability$value <- round(probab, digits = 2)
     
     # Trocando o divisor de decimal de ponto para vírgula e adicionando o símbolo de percentual
     probability$pretty <- paste(prettyNum(probab, decimal.mark = ","), "%")
-    
-    
     
   })
   
@@ -2300,12 +2078,7 @@ server <- function(input, output, session) {
               width = 13
     )
     
-    
-    
   })
-  
-  
-  
   
   # Contruindo o ValueBox que irá mostrar a qualidade da chance criada
   # A cor e o texto dependem do valor da probabilidade
@@ -2320,10 +2093,6 @@ server <- function(input, output, session) {
     if (probability$value > 30 & probability$value < 50 ) { probability$quality <- "Chance ótima"; color_quali <- "green" }
     if (probability$value > 50 & probability$value != 200) { probability$quality <- "Chance excelente"; color_quali <- "olive" }
     
-    
-    
-    
-    
     valueBox( value = probability$quality,
               subtitle = "Qualidade da chance criada",
               icon = icon("certificate"),
@@ -2331,12 +2100,7 @@ server <- function(input, output, session) {
               width = 13
     )
     
-    
-    
   })
-  
-  
-  
   
   
   # Passe - Velocidade na aba "Probabilidade" e
@@ -2352,18 +2116,10 @@ server <- function(input, output, session) {
            options = list(delay = as.numeric("500"))
            )
     
-    
-   
-    
   })
-  
-  
   
 }
 
 
-
-
 # Rodar o aplicativo
 shinyApp(ui = ui, server = server)
-
