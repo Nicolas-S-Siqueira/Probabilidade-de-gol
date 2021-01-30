@@ -1,4 +1,4 @@
-# Probabilidade-de-gol
+# Probabilidade de gol
   Probabilidade de gol é um aplicativo feito com o shiny que tem como objetivo medir a qualidade da chance criada em um jogo de futebol.
 O link para o aplicativo é https://nicolassiqueira.shinyapps.io/Probabilidade_de_gol/.
 
