@@ -1,15 +1,7 @@
 # Carregando os pacotes
 library(tidyverse)
 library(jsonlite)
-library(skimr)
-library(GGally)
-library(vip)
 library(SBpitch)
-library(tidymodels)
-library(corrplot)
-library(glmnet)
-library(tidyposterior)
-
 
 # Competições
 # Importar um arquivo json como um dataframe
@@ -30,7 +22,7 @@ matches <- purrr::map_df(match.files, jsonlite::fromJSON)
 matches %>%  pull(match_id) %>%  length()
 matches %>%  pull(match_id) %>% unique() %>% length()
 
-# Desaninhar as colunas que estão como dataframe
+# Desaninhar as colunas que estão como dataframe e como lista de dataframes
 matches <-  matches %>%
   flatten() %>%
   unnest_wider(home_team.managers, names_sep = ".") %>%
@@ -39,7 +31,7 @@ matches <-  matches %>%
   unnest_wider(away_team.managers.country, names_sep = ".")
 
 
-# Eventos
+# Arquivos com eventos
 events.files <- list.files(path="C:\\Users\\Nicol\\Desktop\\Friends of tracking\\StatsBombData\\open-data-master\\data\\events",
                            full.names = TRUE)
 
@@ -156,7 +148,7 @@ AngToGoal <- function(x,y) {
 
 
 # Função do pacote SBPitch pra criar o gráfico de um campo de futebol
-# Passes que reultaram em chute pra gol
+# Passes que reultaram em finalizações
 create_Pitch(grass_colour = "#538032", 
              line_colour =  "#ffffff", 
              background_colour = "#538032", 
@@ -176,75 +168,7 @@ xg_data <- xg_data %>%
   mutate(shot.angle = AngToGoal(shot.location.1, shot.location.2))
 
 # Olhar os dados
-xg_data %>%
-  glimpse
-
-
-# Função pra checar se o goleiro e/ou os defensores estão
-# no triângulo formado pelo local do chute e as 2 traves
-is_in_triangle <- function(x,y) {
-  
-  shot = c(x,y)
-  post1 = c(120, 44)
-  post2 = c(120, 36)
-  
-  ang.coef.1 = (post1[2] - shot[2])/(post1[1] - shot[1])
-  ang.coef.2 = (post2[2] - shot[2])/(post2[1] - shot[1])
-  
-  #linha1
-  y1 =  ang.coef.1*(xis - shot[1]) + shot[2]
-  
-  #linha2
-  y2 =  ang.coef.2*(xis - shot[1]) + shot[2]
-}
-
-# Função pra checar se o goleiro e/ou os defensores estão
-# no triângulo formado pelo local do chute e as 2 traves
-teste <-  function(def.X, def.Y, shot.X, shot.Y, post1.X, post1.Y, post2.X, post2.Y){
-  # Testar se o defensor está numa posição q poderia bloquear uma bola em direção ao gol
-
-  post1.X = 120
-  post1.Y = 44
-  post2.X = 120
-  post2.Y = 36
-  
-  #testar se está abaixo da linha formada pelo ponto do chute e trave de cima
-  test1 = ((shot.X - def.X)*(post1.Y - def.Y) - (shot.Y - def.Y)*(post1.X - def.X) < 0)
-  
-  #testar se está a cima da linha formada pelo ponto do chute e trave de baixo
-  test2 = ((shot.X - def.X)*(post2.Y - def.Y) - (shot.Y - def.Y)*(post2.X - def.X) > 0)
-  
-  return(test1 == TRUE & test2 == TRUE);
-}
-
-# Função pra calcular a distâncio do defensor para o local do chute
-# dada a coordenada
-LengthToDef <- function(shot.x, shot.y, def.x, def.y) {
-  CatAdj <- abs(shot.x - def.x)
-  CatOp <- abs(shot.y - def.y)   
-  Hip <- sqrt(CatAdj^2 + CatOp^2)
-  
-  limit = 2
-  
-  return(list(Hip < limit,Hip))
-}
-
-# Ângulos dos bloqueadores
-# Usar essa função pra calcular a variância entre os ângulos e com isso ver
-# a possibilidade da bola ser bloqueada pelos defensores.
-block <- function(shot.x, shot.y, def.x, def.y) {
-  
-  post1.X = 120
-  post1.Y = 44
-  
-  dist1 = sqrt((shot.x - def.x)^2 + (shot.y - def.y)^2) 
-  dist2 = sqrt((shot.x - post1.X)^2 + (shot.y - post1.Y)^2) 
-  dist3 = sqrt((def.x - post1.X)^2 + (def.y - post1.Y)^2) 
-  
-  ang = acos((dist1^2 + dist2^2 - dist3^2)/(2*dist1*dist2))
-  
-  return(ang)
-}
+xg_data %>%  glimpse
 
 
 # Tirar os NULL's na lista do shot.freeze_frame (toda a linha)

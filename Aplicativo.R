@@ -2,9 +2,9 @@
 library(tidyverse)
 library(tidymodels)
 library(glmnet)
-library(shinyBS) # tooltip
-library(shinydashboard) # valueBox
-library(shinyWidgets) # useshinydashboard()
+library(shinyBS) 
+library(shinydashboard) 
+library(shinyWidgets) 
 
 
 # Carregar o modelo

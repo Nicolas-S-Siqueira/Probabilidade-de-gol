@@ -1,12 +1,7 @@
 # Carregando os pacotes
 library(tidyverse)
 library(jsonlite)
-#library(skimr)
-#library(GGally)
-#library(vip)
-#library(SBpitch)
 library(tidymodels)
-#library(corrplot)
 library(glmnet)
 library(tidyposterior)
 
