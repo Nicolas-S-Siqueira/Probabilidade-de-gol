@@ -5,14 +5,14 @@ library(SBpitch)
 
 # Competições
 # Importar um arquivo json como um dataframe
-competitions <- jsonlite::fromJSON(txt = "C:\\Users\\Nicol\\Desktop\\Friends of tracking\\StatsBombData\\open-data-master\\data\\competitions.json")
+competitions <- jsonlite::fromJSON(txt = "StatsBombData\\open-data-master\\data\\competitions.json")
 
 # Campeonatos disputados
 competitions %>%  View()
 
 # Ler as partidas
 #### Pra carregar vários arquivos de uma vez
-match.files <- list.files(path="C:\\Users\\Nicol\\Desktop\\Friends of tracking\\StatsBombData\\open-data-master\\data\\matches",
+match.files <- list.files(path="StatsBombData\\open-data-master\\data\\matches",
                           full.names = TRUE,recursive = TRUE)
 
 # Carregando os arquivos e armazenando num dataframe
@@ -32,7 +32,7 @@ matches <-  matches %>%
 
 
 # Arquivos com eventos
-events.files <- list.files(path="C:\\Users\\Nicol\\Desktop\\Friends of tracking\\StatsBombData\\open-data-master\\data\\events",
+events.files <- list.files(path="StatsBombData\\open-data-master\\data\\events",
                            full.names = TRUE)
 
 # Id's de todas as partidas
@@ -42,7 +42,7 @@ ids_champions <- matches %>%
   pull(match_id) %>% 
   as.character()  
 
-path <- "C:\\Users\\Nicol\\Desktop\\Friends of tracking\\StatsBombData\\open-data-master\\data\\events\\"
+path <- "StatsBombData\\open-data-master\\data\\events\\"
 ext <- ".json"
 
 # Como o id da partida é o nome do arquivo dá pra ler os arquivos assim.
