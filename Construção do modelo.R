@@ -1,12 +1,12 @@
 # Carregando os pacotes
 library(tidyverse)
 library(jsonlite)
-library(skimr)
-library(GGally)
-library(vip)
-library(SBpitch)
+#library(skimr)
+#library(GGally)
+#library(vip)
+#library(SBpitch)
 library(tidymodels)
-library(corrplot)
+#library(corrplot)
 library(glmnet)
 library(tidyposterior)
 
@@ -27,62 +27,98 @@ xg_data.h2o %>%  glimpse
 xg_data %>%  glimpse
 
 
-# Análise exploratória
+### Análise exploratória ###
 
-# Gráfico de dispersão
+# Comparação da distribuição do pass_length com a variável resposta
+xg_data %>%
+  select(shot_outcome_name, pass_length) %>% 
+  ggplot(aes(x = pass_length, fill = shot_outcome_name)) +
+  geom_density(alpha = 0.5)
+
+# Comparação da distribuição do my_pass_angle com a variável resposta
 xg_data %>%
   select(shot_outcome_name, my_pass_angle) %>% 
-  ggplot(aes(x = shot_outcome_name, y = my_pass_angle)) +
-  geom_point()
+  ggplot(aes(x = my_pass_angle, fill = shot_outcome_name)) +
+  geom_density(alpha = 0.5)
 
-# Violin plot da variável resposta pelo ângulo do passe
+
+# Comparação da contagem do pass_height_name com a variável resposta
 xg_data %>%
-  select(shot_outcome_name, my_pass_angle) %>% 
-  ggplot(aes(x = shot_outcome_name, y = my_pass_angle)) +
-  geom_violin() +
-  geom_point(alpha = 0.3)
+  select(shot_outcome_name, pass_height_name) %>% 
+  ggplot(aes(x = pass_height_name, fill = shot_outcome_name)) +
+  geom_bar(alpha = 1)
 
 
-# Histograma da variável resposta pelo ângulo do passe
+# Comparação da distribuição do pass_speed_kmph com a variável resposta
 xg_data %>%
-  select(shot_outcome_name, my_pass_angle) %>% 
-  ggplot(aes(x  = my_pass_angle)) +
-  geom_histogram(bins = 15) +
-  facet_wrap(~shot_outcome_name)
+  select(shot_outcome_name, pass_speed_kmph) %>% 
+  ggplot(aes(x = pass_speed_kmph, fill = shot_outcome_name)) +
+  geom_density(alpha = 0.5)
 
-# Densidade da variável resposta pelo ângulo do passe
+# Comparação da distribuição do shot_length com a variável resposta
 xg_data %>%
-  select(shot_outcome_name, my_pass_angle) %>% 
-  ggplot(aes(x  = my_pass_angle)) +
-  geom_density() +
-  facet_wrap(~shot_outcome_name)
-# Parece que quanto mais perto o ângulo está de 3
-# maior é a proporção de finalizações convertidas
+  select(shot_outcome_name, shot_length) %>% 
+  ggplot(aes(x = shot_length, fill = shot_outcome_name)) +
+  geom_density(alpha = 0.5)
 
+# Comparação da distribuição do shot_angle com a variável resposta
+xg_data %>%
+  select(shot_outcome_name, shot_angle) %>% 
+  ggplot(aes(x = shot_angle, fill = shot_outcome_name)) +
+  geom_density(alpha = 0.5)
+
+
+# Comparação da contagem do gk_in_goal com a variável resposta
+xg_data %>%
+  select(shot_outcome_name, gk_in_goal) %>% 
+  ggplot(aes(x = gk_in_goal, fill = shot_outcome_name)) +
+  geom_bar(alpha = 1)
+
+
+# Comparação da distribuição do pressure com a variável resposta
+xg_data %>%
+  select(shot_outcome_name, pressure) %>% 
+  ggplot(aes(x = pressure, fill = shot_outcome_name)) +
+  geom_density(alpha = 0.5)
+
+
+# Comparação da contagem do def_in_way com a variável resposta
+xg_data %>%
+  select(shot_outcome_name, def_in_way) %>% 
+  ggplot(aes(x = def_in_way, fill = shot_outcome_name)) +
+  geom_bar(alpha = 1)
+
+
+# Comparação da histograma do var_angles com a variável resposta
+xg_data %>%
+  select(shot_outcome_name, var_angles) %>% 
+  ggplot(aes(x = var_angles, fill = shot_outcome_name)) +
+  geom_histogram(alpha = 0.5, position = "identity")
+
+
+### Velocidade dos passes de acordo com as distâncias ###
 
 # Passes até 20 metros
 xg_data %>%
   select(pass_speed_kmph, pass_length, pass_height_name) %>%
   filter(pass_length <= 20) %>% 
   group_by(pass_height_name) %>%
-  summarise(mean(pass_speed_kmph)) %>%
-  View
+  summarise(mean(pass_speed_kmph))
 
 # Passes até entre 20 e 40 metros
 xg_data %>%
   select(pass_speed_kmph, pass_length, pass_height_name) %>%
   filter(pass_length > 20 & pass_length <= 40) %>% 
   group_by(pass_height_name) %>%
-  summarise(mean(pass_speed_kmph)) %>%
-  View
+  summarise(mean(pass_speed_kmph))
 
 # Passes com mais de 40 metros
 xg_data %>%
   select(pass_speed_kmph, pass_length, pass_height_name) %>%
   filter(pass_length > 40) %>% 
   group_by(pass_height_name) %>%
-  summarise(mean(pass_speed_kmph)) %>%
-  View
+  summarise(mean(pass_speed_kmph))
+
 
 # Retirando os NA's
 xg_data.h2o <- drop_na(xg_data.h2o)
@@ -191,29 +227,6 @@ last_glm %>%
 last_glm %>%
   collect_predictions() %>% 
   select(.pred_Goal) %>%  sum
-
-#########################################################################################################
-
-#salvar o objeto do R (o modelo nesse caso já com a  receita) pra carregar no aplicativo
-
-#save(last_glm, file =  "GLM_xG.RData")
-
-#carregar
-#load("GLM_xG.RData")
-
-parsnip::predict.model_fit(best_glm)
-
-predict(last_glm)
-
-
-pred_cars <-
-  mtcars %>%
-  dplyr::slice(1:10) %>%
-  dplyr::select(-mpg)
-
-
-##########################################################################################################
-
 
 
 # Criar um workflow pra poder salvar e reutilizar pra fazer previsões de novos valores
