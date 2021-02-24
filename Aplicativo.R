@@ -214,7 +214,7 @@ ui <- fluidPage(
                                       
                                       # Descrição: altura do passe
                                       shinyBS::bsTooltip("pass_height",
-                                                         "  <b>Rasteiro:</b> rente ao gramado <br><br>    <b>Médio:</b> no ponto mais alto da trajetória, a bola sobe à uma altura mais baixa que a do ombro <br><br>   <b>Aéreo:</b> no ponto mais alto da trajetória, a bola sobe à uma altura mais alta que a do ombro",
+                                                         "  <b>Rasteiro:</b> rente ao gramado <br><br>    <b>Médio:</b> no ponto mais alto da trajetória, a bola sobe a uma altura mais baixa que a do ombro <br><br>   <b>Aéreo:</b> no ponto mais alto da trajetória, a bola sobe a uma altura mais alta que a do ombro",
                                                          placement = "bottom")
                                       
                          ),
@@ -884,7 +884,7 @@ ui <- fluidPage(
               ou passe longo e lento dificilmente chegariam ao companheiro em um jogo real.")),
                        
                        h3(tags$li("Para finalizações de cabeça ou qualquer outra parte do corpo, não é recomendada a utilização deste aplicativo
-                        uma vez que a previsão será comprometida.")),
+                        pois a previsão será comprometida.")),
                        
                        h3(tags$li("Caso queira criar um cenário em que o chute não foi de primeira, uma boa abordagem seria 
               considerar o último toque do condutor da bola como um passe para si próprio. Rebotes também podem ser considerados passes,
@@ -897,11 +897,11 @@ ui <- fluidPage(
                                   no último momento, não considera o corte do zagueiro que quase vira um gol contra nem a bola com o gol aberto que o atacante não alcança
                                     por centímetros."))),
                        
-                       h3(tags$li("Apenas defensores a menos de 10 metros do finalizador e/ou que pudesse bloquear uma possível bola em direção ao gol são
+                       h3(tags$li("Apenas defensores a menos de 10 metros do finalizador e/ou que pudessem bloquear uma possível bola em direção ao gol são
               considerados no cálculo. Sendo assim, não é necessário especificar a posição dos 10 defensores.",
-              p("Como referência, a distancia do círculo central pro centro do campo é de 9 metros e 15 centímetros."))),
+              p("Como referência, a distância do círculo central para o centro do campo é de 9 metros e 15 centímetros."))),
                        
-                       h3(tags$li("Cálculos desse tipo também são úteis pra medir a qualidade da finaliação de um jogador.
+                       h3(tags$li("Cálculos desse tipo também são úteis pra medir a qualidade da finalização de um jogador.
                          Caso muitos dados estejam disponíveis, pode-se comparar a quantidade esperada de gols, 
                          somando as probabilidades, com a quantidade real."))
                        
@@ -927,6 +927,11 @@ ui <- fluidPage(
                        h3("Acesse o código fonte do aplicativo em ", tags$a(tags$image(src = "github-logo.jpg", height = 109*0.2, width = 366*0.2),
                                                                            href = "https://github.com/Nicolas-S-Siqueira/Probabilidade-de-gol",
                                                                            target = "_blank")),
+                       
+                       # Texto e logo do Friends of tracking
+                       h3("A fonte de inspiração para a realização desse projeto foi o canal no youtube", tags$a(tags$image(src = "friends_of_tracking_circle.png", height = 900*0.07, width = 900*0.07),
+                                            href = "https://www.youtube.com/channel/UCUBFJYcag8j2rm_9HkrrA7w",
+                                            target = "_blank")),
                        
                        hr(),
                        
@@ -1062,9 +1067,9 @@ server <- function(input, output, session) {
   
   # Modificar o texto de acordo com a altura do passe selecionada
   observeEvent(input$pass_height, {
-    passe_rasteiro <- "<h6>Velocidade média: passe <b>rasteiro</b></h6>  até 20 metros: 39 Km/h   <br>    entre 20 e 40 metros: 52 Km/h <br>   mais que 40 metros : 55 Km/h"
-    passe_medio <- "<h6>Velocidade média: passe <b>médio</b></h6>  até 20 metros: 38 Km/h <br>    entre 20 e 40 metros: 65 Km/h <br>   mais que 40 metros : 70 Km/h"
-    passe_alto <- "<h6>Velocidade média: passe <b>aéreo</b></h6>  até 20 metros: 33 Km/h <br>   entre 20 e 40 metros: 59 Km/h <br>   mais que 40 metros : 63 Km/h"
+    passe_rasteiro <- "<h6>Velocidade média: passe <b>rasteiro</b></h6>  até 20 metros: 39 Km/h   <br>    entre 20 e 40 metros: 52 Km/h <br>   mais que 40 metros: 55 Km/h"
+    passe_medio <- "<h6>Velocidade média: passe <b>médio</b></h6>  até 20 metros: 38 Km/h <br>    entre 20 e 40 metros: 65 Km/h <br>   mais que 40 metros: 70 Km/h"
+    passe_alto <- "<h6>Velocidade média: passe <b>aéreo</b></h6>  até 20 metros: 33 Km/h <br>   entre 20 e 40 metros: 59 Km/h <br>   mais que 40 metros: 63 Km/h"
     
     if (input$pass_height == "Ground Pass") { text$pass <- passe_rasteiro }
     if (input$pass_height == "Low Pass") { text$pass <- passe_medio }
